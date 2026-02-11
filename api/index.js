@@ -37,7 +37,8 @@ const mockResponse = {
 
 // ========== USE_MOCK 判定ヘルパー ==========
 function useMock() {
-  return process.env.USE_MOCK !== "false";
+  // Vercel環境では常に実APIモードで動作
+  return false;
 }
 
 // ========== Lyrics.ovh で歌詞テキストを取得 ==========
