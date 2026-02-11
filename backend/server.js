@@ -445,10 +445,36 @@ app.post("/api/feedback", async (req, res) => {
     // ファイルに保存
     fs.writeFileSync(feedbackFile, JSON.stringify(feedbacks, null, 2));
 
+    // メール送信 (RESEND_API_KEYが設定されている場合のみ)
+    if (process.env.RESEND_API_KEY && process.env.FEEDBACK_EMAIL) {
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+
+      const formattedDate = new Date(timestamp).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+
+      await resend.emails.send({
+        from: 'Lyrics Explainer <onboarding@resend.dev>',
+        to: [process.env.FEEDBACK_EMAIL],
+        subject: `[Lyrics Explainer] 新しいフィードバック受信`,
+        html: `
+          <h2>新しいフィードバックが届きました</h2>
+          <p><strong>受信日時:</strong> ${formattedDate}</p>
+          <p><strong>ID:</strong> ${requestId}</p>
+          <hr>
+          <h3>フィードバック内容:</h3>
+          <p>${feedback.trim().replace(/\n/g, '<br>')}</p>
+          <hr>
+          <p><small><strong>User Agent:</strong> ${userAgent}</small></p>
+        `,
+      });
+
+      console.log(`[${requestId}] ✅ メール送信完了`);
+    }
+
     console.log(`[${requestId}] ✅ フィードバック保存完了`);
     return res.json({ success: true });
   } catch (err) {
-    console.error(`[${requestId}] ❌ フィードバック保存エラー: ${err.message}`);
+    console.error(`[${requestId}] ❌ フィードバック処理エラー: ${err.message}`);
     return res.status(500).json({ error: err.message });
   }
 });
