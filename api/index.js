@@ -1,16 +1,20 @@
-// Vercel環境では環境変数が自動的に設定されるため、dotenvは開発時のみ必要
-try {
-  require('dotenv').config({ path: '../backend/.env' });
-} catch (e) {
-  // Vercel環境ではdotenvファイルがないため、エラーを無視
-  console.log('[INFO] .env file not found (expected in Vercel)');
+// Vercel環境では環境変数が自動的に設定されるため、dotenvは不要
+// ローカルテスト用に.envファイルがあれば読み込む
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    require('dotenv').config({ path: '../backend/.env' });
+  } catch (e) {
+    // .envファイルがなくても問題なし（Vercel環境）
+  }
 }
 
 // デバッグ用：環境変数が読み込まれているか確認
 console.log('========================================');
-console.log('[ENV DEBUG] .env ファイルからの読み込み確認');
+console.log('[ENV DEBUG] 環境変数の読み込み確認');
 console.log('  process.env.GENIUS_API_KEY:', process.env.GENIUS_API_KEY ? '✅ 設定済み' : '❌ 未設定');
 console.log('  process.env.ANTHROPIC_API_KEY:', process.env.ANTHROPIC_API_KEY ? '✅ 設定済み' : '❌ 未設定');
+console.log('  process.env.RESEND_API_KEY:', process.env.RESEND_API_KEY ? '✅ 設定済み' : '❌ 未設定');
+console.log('  process.env.FEEDBACK_EMAIL:', process.env.FEEDBACK_EMAIL ? '✅ 設定済み' : '❌ 未設定');
 console.log('  process.env.USE_MOCK:', process.env.USE_MOCK);
 console.log('========================================');
 
