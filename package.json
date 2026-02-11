@@ -1,0 +1,21 @@
+{
+  "name": "lyrics-explainer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm install && npm run build",
+    "install-all": "cd frontend && npm install && cd ../backend && npm install"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.74.0",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}
