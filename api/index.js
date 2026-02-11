@@ -416,35 +416,36 @@ app.post("/api/feedback", async (req, res) => {
   }
 
   try {
-    // フィードバックをログに記録
-    const fs = require('fs');
-    const path = require('path');
-    const feedbackDir = path.join(__dirname, 'feedback');
+    // ファイル保存（ローカル環境のみ、Vercelでは失敗するが無視）
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const feedbackDir = path.join(__dirname, 'feedback');
 
-    // feedbackディレクトリがなければ作成
-    if (!fs.existsSync(feedbackDir)) {
-      fs.mkdirSync(feedbackDir, { recursive: true });
+      if (!fs.existsSync(feedbackDir)) {
+        fs.mkdirSync(feedbackDir, { recursive: true });
+      }
+
+      const feedbackFile = path.join(feedbackDir, 'feedback.json');
+      let feedbacks = [];
+
+      if (fs.existsSync(feedbackFile)) {
+        const data = fs.readFileSync(feedbackFile, 'utf8');
+        feedbacks = JSON.parse(data);
+      }
+
+      feedbacks.push({
+        id: requestId,
+        feedback: feedback.trim(),
+        timestamp,
+        userAgent,
+      });
+
+      fs.writeFileSync(feedbackFile, JSON.stringify(feedbacks, null, 2));
+      console.log(`[${requestId}] ✅ ファイル保存完了`);
+    } catch (fsErr) {
+      console.log(`[${requestId}] ⚠️ ファイル保存スキップ (Vercel環境): ${fsErr.message}`);
     }
-
-    const feedbackFile = path.join(feedbackDir, 'feedback.json');
-    let feedbacks = [];
-
-    // 既存のフィードバックを読み込み
-    if (fs.existsSync(feedbackFile)) {
-      const data = fs.readFileSync(feedbackFile, 'utf8');
-      feedbacks = JSON.parse(data);
-    }
-
-    // 新しいフィードバックを追加
-    feedbacks.push({
-      id: requestId,
-      feedback: feedback.trim(),
-      timestamp,
-      userAgent,
-    });
-
-    // ファイルに保存
-    fs.writeFileSync(feedbackFile, JSON.stringify(feedbacks, null, 2));
 
     // メール送信 (RESEND_API_KEYが設定されている場合のみ)
     if (process.env.RESEND_API_KEY && process.env.FEEDBACK_EMAIL) {
@@ -470,9 +471,11 @@ app.post("/api/feedback", async (req, res) => {
       });
 
       console.log(`[${requestId}] ✅ メール送信完了`);
+    } else {
+      console.log(`[${requestId}] ⚠️ メール送信スキップ: RESEND_API_KEY または FEEDBACK_EMAIL が未設定`);
     }
 
-    console.log(`[${requestId}] ✅ フィードバック保存完了`);
+    console.log(`[${requestId}] ✅ フィードバック処理完了`);
     return res.json({ success: true });
   } catch (err) {
     console.error(`[${requestId}] ❌ フィードバック処理エラー: ${err.message}`);
