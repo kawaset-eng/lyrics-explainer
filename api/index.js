@@ -11,7 +11,7 @@ console.log('========================================');
 const express = require("express");
 const cors = require("cors");
 const { load } = require("cheerio");
-const { analyzeLyrics, chatAboutSong, getArtistTrivia, getRecommendations } = require("./services/claude");
+const { analyzeLyrics, chatAboutSong, getArtistTrivia, getRecommendations } = require("../backend/services/claude");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
