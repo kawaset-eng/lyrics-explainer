@@ -1,4 +1,10 @@
-require('dotenv').config({ path: '.env', override: true });
+// Vercel環境では環境変数が自動的に設定されるため、dotenvは開発時のみ必要
+try {
+  require('dotenv').config({ path: '../backend/.env' });
+} catch (e) {
+  // Vercel環境ではdotenvファイルがないため、エラーを無視
+  console.log('[INFO] .env file not found (expected in Vercel)');
+}
 
 // デバッグ用：環境変数が読み込まれているか確認
 console.log('========================================');
@@ -191,6 +197,14 @@ app.post("/api/lyrics", async (req, res) => {
     const geniusData = await geniusRes.json();
     const hits = geniusData.response?.hits || [];
     console.log(`[${requestId}] [Genius] ヒット数: ${hits.length}`);
+
+    // デバッグ：全検索結果を表示
+    if (hits.length > 0) {
+      console.log(`[${requestId}] [Genius] 全検索結果:`);
+      hits.slice(0, 5).forEach((hit, idx) => {
+        console.log(`  ${idx + 1}. "${hit.result.title}" by ${hit.result.primary_artist?.name}`);
+      });
+    }
 
     // より良いマッチングを探す：アーティスト名が部分一致するものを優先
     let bestMatch = hits[0]?.result;
