@@ -11,7 +11,7 @@ console.log('========================================');
 const express = require("express");
 const cors = require("cors");
 const { load } = require("cheerio");
-const { analyzeLyrics, chatAboutSong, getArtistTrivia } = require("./services/claude");
+const { analyzeLyrics, chatAboutSong, getArtistTrivia, getRecommendations } = require("./services/claude");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -369,6 +369,86 @@ app.post("/api/artist-trivia", async (req, res) => {
     return res.json({ trivia });
   } catch (err) {
     console.error(`[${requestId}] ❌ 豆知識取得エラー: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== 類似曲レコメンドエンドポイント ==========
+app.post("/api/recommendations", async (req, res) => {
+  const requestId = Date.now().toString(36);
+  const { title, artist, interpretation } = req.body;
+
+  console.log(`\n[${requestId}] ===== 類似曲レコメンドリクエスト受信 =====`);
+  console.log(`[${requestId}] 曲: "${title}" by "${artist}"`);
+
+  if (!title || !artist) {
+    return res.status(400).json({ error: "曲名とアーティスト名は必須です" });
+  }
+
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY が設定されていません。");
+    }
+
+    const recommendations = await getRecommendations(title, artist, interpretation || "", requestId);
+
+    console.log(`[${requestId}] ✅ レコメンド取得完了`);
+    return res.json({ recommendations });
+  } catch (err) {
+    console.error(`[${requestId}] ❌ レコメンド取得エラー: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== フィードバックエンドポイント ==========
+app.post("/api/feedback", async (req, res) => {
+  const requestId = Date.now().toString(36);
+  const { feedback, timestamp, userAgent } = req.body;
+
+  console.log(`\n[${requestId}] ===== フィードバック受信 =====`);
+  console.log(`[${requestId}] タイムスタンプ: ${timestamp}`);
+  console.log(`[${requestId}] フィードバック: ${feedback.substring(0, 100)}${feedback.length > 100 ? '...' : ''}`);
+  console.log(`[${requestId}] User Agent: ${userAgent}`);
+
+  if (!feedback || !feedback.trim()) {
+    return res.status(400).json({ error: "フィードバック内容は必須です" });
+  }
+
+  try {
+    // フィードバックをログに記録
+    const fs = require('fs');
+    const path = require('path');
+    const feedbackDir = path.join(__dirname, 'feedback');
+
+    // feedbackディレクトリがなければ作成
+    if (!fs.existsSync(feedbackDir)) {
+      fs.mkdirSync(feedbackDir, { recursive: true });
+    }
+
+    const feedbackFile = path.join(feedbackDir, 'feedback.json');
+    let feedbacks = [];
+
+    // 既存のフィードバックを読み込み
+    if (fs.existsSync(feedbackFile)) {
+      const data = fs.readFileSync(feedbackFile, 'utf8');
+      feedbacks = JSON.parse(data);
+    }
+
+    // 新しいフィードバックを追加
+    feedbacks.push({
+      id: requestId,
+      feedback: feedback.trim(),
+      timestamp,
+      userAgent,
+    });
+
+    // ファイルに保存
+    fs.writeFileSync(feedbackFile, JSON.stringify(feedbacks, null, 2));
+
+    console.log(`[${requestId}] ✅ フィードバック保存完了`);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(`[${requestId}] ❌ フィードバック保存エラー: ${err.message}`);
     return res.status(500).json({ error: err.message });
   }
 });

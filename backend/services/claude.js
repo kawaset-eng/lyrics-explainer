@@ -282,4 +282,58 @@ async function getArtistTrivia(artist, requestId) {
   }
 }
 
-module.exports = { analyzeLyrics, chatAboutSong, getArtistTrivia };
+/**
+ * 曲の類似曲をレコメンドする
+ * @param {string} title - 曲名
+ * @param {string} artist - アーティスト名
+ * @param {string} interpretation - 曲の解釈（ジャンル、テーマの参考用）
+ * @param {string} requestId - デバッグ用リクエストID
+ */
+async function getRecommendations(title, artist, interpretation, requestId) {
+  const prompt = `あなたは音楽評論家です。以下の曲が好きな人におすすめの類似曲を3曲提案してください。
+
+曲名: ${title}
+アーティスト: ${artist}
+曲の特徴: ${interpretation.substring(0, 200)}...
+
+以下のJSON形式で回答してください。JSON以外のテキストは含めないでください。
+
+{
+  "recommendations": [
+    {
+      "title": "曲名",
+      "artist": "アーティスト名",
+      "reason": "おすすめの理由（30-50字程度）"
+    }
+  ]
+}
+
+音楽性、テーマ、雰囲気が似ている曲を厳選して3曲提案してください。同じアーティストの曲は避けてください。`;
+
+  console.log(`[${requestId}] [Recommendations] リクエスト開始...`);
+  console.log(`[${requestId}] [Recommendations] 曲: ${title} by ${artist}`);
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  console.log(`[${requestId}] [Recommendations] レスポンス受信`);
+
+  const rawText = message.content[0].text;
+
+  // JSONを抽出してパース
+  let jsonStr = rawText;
+  const fenceMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    jsonStr = fenceMatch[1].trim();
+  }
+
+  const parsed = JSON.parse(jsonStr);
+  console.log(`[${requestId}] [Recommendations] ✅ レコメンド取得完了: ${parsed.recommendations.length}曲`);
+
+  return parsed.recommendations || [];
+}
+
+module.exports = { analyzeLyrics, chatAboutSong, getArtistTrivia, getRecommendations };

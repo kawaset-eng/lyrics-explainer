@@ -7,7 +7,9 @@ import Translation from "./components/Translation";
 import Interpretation from "./components/Interpretation";
 import ArtistInfo from "./components/ArtistInfo";
 import ArtistNews from "./components/ArtistNews";
+import Recommendations from "./components/Recommendations";
 import ChatSection from "./components/ChatSection";
+import Feedback from "./components/Feedback";
 import { useSearchHistory } from "./hooks/useSearchHistory";
 
 export default function App() {
@@ -133,6 +135,14 @@ export default function App() {
             {/* アーティストの最新ニュース */}
             <ArtistNews artist={result.artist} />
 
+            {/* 類似曲レコメンド */}
+            <Recommendations
+              title={result.title}
+              artist={result.artist}
+              interpretation={result.interpretation}
+              onSelectSong={handleSearch}
+            />
+
             {/* チャット */}
             <ChatSection songContext={result} />
           </div>
@@ -145,6 +155,9 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* フィードバックボタン */}
+      <Feedback />
     </div>
   );
 }
