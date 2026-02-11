@@ -2,13 +2,14 @@ export default function Logo({ className = "" }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* レコード盤のアイコン */}
-      <div className="relative w-12 h-12">
+      <div className="relative w-12 h-12 logo-record">
         <svg
           width="48"
           height="48"
           viewBox="0 0 48 48"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
+          className="transition-transform duration-300"
         >
           {/* 外側の円（レコード盤） */}
           <circle cx="24" cy="24" r="22" fill="url(#gradient1)" />
@@ -50,28 +51,6 @@ export default function Logo({ className = "" }) {
           </defs>
         </svg>
 
-        {/* 回転アニメーション */}
-        <style>{`
-          @keyframes spin-slow {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .logo-record:hover svg {
-            animation: spin-slow 3s linear infinite;
-          }
-        `}</style>
-        <div className="logo-record absolute inset-0">
-          <svg
-            width="48"
-            height="48"
-            viewBox="0 0 48 48"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ transition: 'all 0.3s ease' }}
-          >
-            {/* ホバー時に回転するレコード */}
-          </svg>
-        </div>
       </div>
 
       {/* テキストロゴ */}
