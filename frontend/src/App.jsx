@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Logo from "./components/Logo";
 import SearchForm from "./components/SearchForm";
 import SearchHistory from "./components/SearchHistory";
 import LyricsDisplay from "./components/LyricsDisplay";
@@ -54,22 +55,26 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      {/* 背景の装飾 */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <header className="relative bg-white/80 backdrop-blur-sm border-b border-gray-200/50 py-6 shadow-sm">
         <div className="max-w-5xl mx-auto px-4">
-          <h1
+          <div
             onClick={handleBackToHome}
-            className="text-2xl font-bold text-gray-900 text-center mb-1 cursor-pointer hover:text-indigo-600 transition-colors"
+            className="flex justify-center cursor-pointer transition-transform hover:scale-105"
           >
-            Lyrics Explainer
-          </h1>
-          <p className="text-center text-gray-500 text-sm">
-            洋楽の歌詞を理解しよう
-          </p>
+            <Logo />
+          </div>
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className="relative max-w-5xl mx-auto px-4 py-8">
         <SearchForm onSearch={handleSearch} isLoading={isLoading} />
 
         <SearchHistory
