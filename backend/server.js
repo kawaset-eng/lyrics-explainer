@@ -11,7 +11,7 @@ console.log('========================================');
 const express = require("express");
 const cors = require("cors");
 const { load } = require("cheerio");
-const { analyzeLyrics, chatAboutSong } = require("./services/claude");
+const { analyzeLyrics, chatAboutSong, getArtistTrivia } = require("./services/claude");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -299,6 +299,76 @@ app.post("/api/chat", async (req, res) => {
     return res.json({ reply });
   } catch (err) {
     console.error(`[${requestId}] ❌ チャットエラー: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== POST /api/news ==========
+app.post("/api/news", async (req, res) => {
+  const requestId = Date.now().toString(36);
+  const { artist } = req.body;
+
+  console.log(`\n[${requestId}] ===== ニュースリクエスト受信 =====`);
+  console.log(`[${requestId}] アーティスト: "${artist}"`);
+
+  if (!artist) {
+    return res.status(400).json({ error: "アーティスト名は必須です" });
+  }
+
+  try {
+    // 簡易実装：Google検索へのリンクを含むダミーニュース
+    const mockNews = [
+      {
+        title: `${artist}の最新情報をチェック`,
+        description: `${artist}に関する最新のニュース、ツアー情報、アルバムリリースなどをチェックできます。`,
+        url: `https://www.google.com/search?q=${encodeURIComponent(artist + " news")}`,
+        source: "Google News",
+      },
+      {
+        title: `${artist}のコンサート情報`,
+        description: `${artist}の今後のライブやツアー情報を確認できます。`,
+        url: `https://www.google.com/search?q=${encodeURIComponent(artist + " tour concert")}`,
+        source: "Concert Search",
+      },
+      {
+        title: `${artist}の新曲・新アルバム`,
+        description: `${artist}の最新リリースやミュージックビデオをチェックできます。`,
+        url: `https://www.google.com/search?q=${encodeURIComponent(artist + " new album")}`,
+        source: "Music Updates",
+      },
+    ];
+
+    console.log(`[${requestId}] ✅ ニュースリンク生成完了: ${mockNews.length}件`);
+    return res.json({ news: mockNews });
+  } catch (err) {
+    console.error(`[${requestId}] ❌ ニュース取得エラー: ${err.message}`);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== POST /api/artist-trivia ==========
+app.post("/api/artist-trivia", async (req, res) => {
+  const requestId = Date.now().toString(36);
+  const { artist } = req.body;
+
+  console.log(`\n[${requestId}] ===== アーティスト豆知識リクエスト受信 =====`);
+  console.log(`[${requestId}] アーティスト: "${artist}"`);
+
+  if (!artist) {
+    return res.status(400).json({ error: "アーティスト名は必須です" });
+  }
+
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY が設定されていません。");
+    }
+
+    const trivia = await getArtistTrivia(artist, requestId);
+
+    console.log(`[${requestId}] ✅ 豆知識取得完了`);
+    return res.json({ trivia });
+  } catch (err) {
+    console.error(`[${requestId}] ❌ 豆知識取得エラー: ${err.message}`);
     return res.status(500).json({ error: err.message });
   }
 });

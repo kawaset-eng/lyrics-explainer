@@ -137,4 +137,57 @@ ${songContext.interpretation || "(解釈なし)"}
   return reply;
 }
 
-module.exports = { analyzeLyrics, chatAboutSong };
+/**
+ * アーティストの豆知識を生成する
+ * @param {string} artist - アーティスト名
+ * @param {string} requestId - デバッグ用リクエストID
+ */
+async function getArtistTrivia(artist, requestId) {
+  const prompt = `あなたは音楽評論家です。アーティスト「${artist}」について、最新ニュースや興味深い豆知識を2-3個、簡潔に教えてください。
+
+以下のJSON形式で回答してください。JSON以外のテキストは含めないでください。
+
+{
+  "trivia": [
+    "情報1（50-100字程度）",
+    "情報2（50-100字程度）",
+    "情報3（50-100字程度）"
+  ]
+}
+
+以下のような内容を含めてください（最新情報を優先）：
+- 最近のアルバムリリースやツアー情報
+- 最新の音楽賞受賞や話題のニュース
+- 代表曲の制作秘話や知られざるエピソード
+- 音楽業界への影響や評価
+- コラボレーションや新プロジェクト
+
+できるだけ最新の情報を含め、簡潔で興味深い内容にしてください。`;
+
+  console.log(`[${requestId}] [Artist Trivia] リクエスト開始...`);
+  console.log(`[${requestId}] [Artist Trivia] アーティスト: ${artist}`);
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  console.log(`[${requestId}] [Artist Trivia] レスポンス受信`);
+
+  const rawText = message.content[0].text;
+
+  // JSONを抽出してパース
+  let jsonStr = rawText;
+  const fenceMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    jsonStr = fenceMatch[1].trim();
+  }
+
+  const parsed = JSON.parse(jsonStr);
+  console.log(`[${requestId}] [Artist Trivia] ✅ 豆知識取得完了: ${parsed.trivia.length}件`);
+
+  return parsed.trivia || [];
+}
+
+module.exports = { analyzeLyrics, chatAboutSong, getArtistTrivia };

@@ -6,6 +6,7 @@ import LyricsDisplay from "./components/LyricsDisplay";
 import Translation from "./components/Translation";
 import Interpretation from "./components/Interpretation";
 import ArtistInfo from "./components/ArtistInfo";
+import ArtistNews from "./components/ArtistNews";
 import ChatSection from "./components/ChatSection";
 import { useSearchHistory } from "./hooks/useSearchHistory";
 
@@ -128,6 +129,9 @@ export default function App() {
               artistInfo={result.artistInfo}
               artist={result.artist}
             />
+
+            {/* アーティストの最新ニュース */}
+            <ArtistNews artist={result.artist} />
 
             {/* チャット */}
             <ChatSection songContext={result} />
