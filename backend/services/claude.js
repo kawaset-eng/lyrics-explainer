@@ -138,12 +138,81 @@ ${songContext.interpretation || "(解釈なし)"}
 }
 
 /**
- * アーティストの豆知識を生成する
+ * Web検索を使ってアーティストの最新ニュースを取得する（タイムアウト付き）
  * @param {string} artist - アーティスト名
  * @param {string} requestId - デバッグ用リクエストID
  */
-async function getArtistTrivia(artist, requestId) {
-  const prompt = `あなたは音楽評論家です。アーティスト「${artist}」について、最新ニュースや興味深い豆知識を2-3個、簡潔に教えてください。
+async function getArtistTriviaWithWebSearch(artist, requestId) {
+  console.log(`[${requestId}] [Artist News] Web検索を試行中...`);
+
+  const prompt = `2026年現在、アーティスト「${artist}」の最新ニュース2-3件を簡潔に教えてください。
+
+以下のJSON形式で回答してください。JSON以外の説明文は一切含めないでください：
+
+{
+  "trivia": [
+    "情報1（50-100字）",
+    "情報2（50-100字）"
+  ]
+}
+
+注意: レスポンスはJSON形式のみで、説明やコメントは不要です。`;
+
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 1024,
+    messages: [{ role: "user", content: prompt }],
+    tools: [
+      {
+        type: "web_search_20250305",
+        name: "web_search"
+      }
+    ]
+  });
+
+  // tool_use と text ブロックから最終的なテキストを取得
+  let finalText = "";
+  for (const block of message.content) {
+    if (block.type === "text") {
+      finalText = block.text;
+    }
+  }
+
+  console.log(`[${requestId}] [Artist News] 元のテキスト長: ${finalText.length}文字`);
+
+  // JSONを抽出してパース（より堅牢に）
+  let jsonStr = finalText;
+
+  // まずコードフェンスをチェック
+  const fenceMatch = finalText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) {
+    jsonStr = fenceMatch[1].trim();
+  } else {
+    // コードフェンスがない場合、{ } で囲まれた部分を抽出
+    const jsonMatch = finalText.match(/\{[\s\S]*"trivia"[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[0];
+    }
+  }
+
+  // JSON文字列からcitationタグのみを削除（開始タグと終了タグのみ削除、中身は残す）
+  jsonStr = jsonStr.replace(/<cite[^>]*>/g, '').replace(/<\/cite>/g, '');
+
+  const parsed = JSON.parse(jsonStr);
+
+  console.log(`[${requestId}] [Artist News] ✅ Web検索成功: ${parsed.trivia.length}件`);
+  return parsed.trivia || [];
+}
+
+/**
+ * 通常の方法でアーティストの豆知識を生成する（フォールバック）
+ * @param {string} artist - アーティスト名
+ * @param {string} requestId - デバッグ用リクエストID
+ */
+async function getArtistTriviaFallback(artist, requestId) {
+  console.log(`[${requestId}] [Artist Trivia] 通常モードで取得中...`);
+
+  const prompt = `あなたは音楽評論家です。アーティスト「${artist}」について、興味深い豆知識を2-3個、簡潔に教えてください。
 
 以下のJSON形式で回答してください。JSON以外のテキストは含めないでください。
 
@@ -155,25 +224,19 @@ async function getArtistTrivia(artist, requestId) {
   ]
 }
 
-以下のような内容を含めてください（最新情報を優先）：
-- 最近のアルバムリリースやツアー情報
-- 最新の音楽賞受賞や話題のニュース
+以下のような内容を含めてください：
 - 代表曲の制作秘話や知られざるエピソード
 - 音楽業界への影響や評価
-- コラボレーションや新プロジェクト
+- アルバムやツアーに関する話題
+- 受賞歴やチャート記録
 
-できるだけ最新の情報を含め、簡潔で興味深い内容にしてください。`;
-
-  console.log(`[${requestId}] [Artist Trivia] リクエスト開始...`);
-  console.log(`[${requestId}] [Artist Trivia] アーティスト: ${artist}`);
+簡潔で興味深い内容にしてください。`;
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
   });
-
-  console.log(`[${requestId}] [Artist Trivia] レスポンス受信`);
 
   const rawText = message.content[0].text;
 
@@ -185,9 +248,38 @@ async function getArtistTrivia(artist, requestId) {
   }
 
   const parsed = JSON.parse(jsonStr);
-  console.log(`[${requestId}] [Artist Trivia] ✅ 豆知識取得完了: ${parsed.trivia.length}件`);
+  console.log(`[${requestId}] [Artist Trivia] ✅ 通常モードで取得完了: ${parsed.trivia.length}件`);
 
   return parsed.trivia || [];
+}
+
+/**
+ * アーティストの豆知識を生成する（Web検索 + フォールバック）
+ * @param {string} artist - アーティスト名
+ * @param {string} requestId - デバッグ用リクエストID
+ */
+async function getArtistTrivia(artist, requestId) {
+  console.log(`[${requestId}] [Artist Trivia] リクエスト開始...`);
+  console.log(`[${requestId}] [Artist Trivia] アーティスト: ${artist}`);
+
+  try {
+    // Web検索を15秒タイムアウトで試行
+    const result = await Promise.race([
+      getArtistTriviaWithWebSearch(artist, requestId),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Web検索タイムアウト')), 15000)
+      )
+    ]);
+
+    console.log(`[${requestId}] [Artist Trivia] ✅ Web検索で取得成功`);
+    return result;
+  } catch (error) {
+    console.log(`[${requestId}] [Artist Trivia] ⚠️ Web検索失敗: ${error.message}`);
+    console.log(`[${requestId}] [Artist Trivia] フォールバックモードに切り替え`);
+
+    // フォールバック: 通常の方法で取得
+    return await getArtistTriviaFallback(artist, requestId);
+  }
 }
 
 module.exports = { analyzeLyrics, chatAboutSong, getArtistTrivia };
