@@ -16,14 +16,14 @@ export default function SearchForm({ onSearch, isLoading }) {
       <div className="flex flex-col sm:flex-row gap-3 bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white">
         <input
           type="text"
-          placeholder="曲名 (例: Bohemian Rhapsody)"
+          placeholder="曲名 (例: All You Need Is Love)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white transition-all"
         />
         <input
           type="text"
-          placeholder="アーティスト名 (例: Queen)"
+          placeholder="アーティスト名 (例: The Beatles)"
           value={artist}
           onChange={(e) => setArtist(e.target.value)}
           className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 bg-white transition-all"
